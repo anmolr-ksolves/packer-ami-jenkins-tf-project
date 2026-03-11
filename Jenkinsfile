@@ -30,11 +30,13 @@ pipeline {
     stage('Verify Tooling') {
       steps {
         sh '''
-          set -euo pipefail
-          aws --version
-          packer version
-          terraform version
-          jq --version
+          bash -lc '
+            set -euo pipefail
+            aws --version
+            packer version
+            terraform version
+            jq --version
+          '
         '''
       }
     }
@@ -47,9 +49,11 @@ pipeline {
         ]) {
           dir('packer') {
             sh '''
-              set -euo pipefail
-              export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
-              packer init .
+              bash -lc '
+                set -euo pipefail
+                export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
+                packer init .
+              '
             '''
           }
         }
@@ -64,9 +68,11 @@ pipeline {
         ]) {
           dir('packer') {
             sh '''
-              set -euo pipefail
-              export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
-              packer validate .
+              bash -lc '
+                set -euo pipefail
+                export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
+                packer validate .
+              '
             '''
           }
         }
@@ -81,9 +87,11 @@ pipeline {
         ]) {
           dir('packer') {
             sh '''
-              set -euo pipefail
-              export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
-              packer build .
+              bash -lc '
+                set -euo pipefail
+                export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
+                packer build .
+              '
             '''
           }
         }
@@ -95,8 +103,10 @@ pipeline {
         script {
           env.AMI_ID = sh(
             script: '''
-              set -euo pipefail
-              jq -r '.builds[-1].artifact_id' packer/manifest.json | cut -d: -f2
+              bash -lc '
+                set -euo pipefail
+                jq -r ".builds[-1].artifact_id" packer/manifest.json | cut -d: -f2
+              '
             ''',
             returnStdout: true
           ).trim()
@@ -117,13 +127,15 @@ pipeline {
           string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
           sh '''
-            set -euo pipefail
-            export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
-            aws ssm put-parameter \
-              --name "/nginx/latest-ami" \
-              --type String \
-              --value "$AMI_ID" \
-              --overwrite
+            bash -lc '
+              set -euo pipefail
+              export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION
+              aws ssm put-parameter \
+                --name "/nginx/latest-ami" \
+                --type String \
+                --value "$AMI_ID" \
+                --overwrite
+            '
           '''
         }
       }
@@ -137,9 +149,11 @@ pipeline {
         ]) {
           dir("${params.TERRAFORM_DIR}") {
             sh '''
-              set -euo pipefail
-              export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION TF_VAR_region TF_VAR_key_name
-              terraform init -input=false
+              bash -lc '
+                set -euo pipefail
+                export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION TF_VAR_region TF_VAR_key_name
+                terraform init -input=false
+              '
             '''
           }
         }
@@ -154,9 +168,11 @@ pipeline {
         ]) {
           dir("${params.TERRAFORM_DIR}") {
             sh '''
-              set -euo pipefail
-              export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION TF_VAR_region TF_VAR_key_name
-              terraform validate
+              bash -lc '
+                set -euo pipefail
+                export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION TF_VAR_region TF_VAR_key_name
+                terraform validate
+              '
             '''
           }
         }
@@ -171,9 +187,11 @@ pipeline {
         ]) {
           dir("${params.TERRAFORM_DIR}") {
             sh '''
-              set -euo pipefail
-              export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION TF_VAR_region TF_VAR_key_name
-              terraform apply -auto-approve -input=false
+              bash -lc '
+                set -euo pipefail
+                export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION AWS_REGION TF_VAR_region TF_VAR_key_name
+                terraform apply -auto-approve -input=false
+              '
             '''
           }
         }
